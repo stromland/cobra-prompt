@@ -60,7 +60,7 @@ func completer(d prompt.Document) []prompt.Suggest {
 
 	var suggestions []prompt.Suggest
 	if strings.HasPrefix(d.GetWordBeforeCursor(), "-") {
-		flags := []*pflag.FlagSet{lRootCmd.PersistentFlags(), currentCommand.LocalNonPersistentFlags()}
+		flags := []*pflag.FlagSet{currentCommand.LocalNonPersistentFlags(), lRootCmd.PersistentFlags()}
 		for _, fs := range flags {
 			fs.VisitAll(func(flag *pflag.Flag) {
 				suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
