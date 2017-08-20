@@ -1,25 +1,29 @@
 package coprompt
 
 import (
-	"strings"
-	"os"
 	"github.com/c-bata/go-prompt"
-	"github.com/spf13/pflag"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"os"
+	"strings"
 )
 
-//CoPrompt will check if your command includes the annotation "coprompt". If it's included the value will be
-//provided to the HandleDynamicSuggestions function.
+/*
+HandleDynamicSuggestions
+CoPrompt will check if your command includes the annotation "coprompt". If it's included the value will be
+provided to the HandleDynamicSuggestions function.
+*/
 type HandleDynamicSuggestions func(annotation string, document prompt.Document) []prompt.Suggest
 
 var lRootCmd *cobra.Command
 var lHandleDynamicSuggestions HandleDynamicSuggestions
 
 /*
+Run
 CoPrompt will automatically generate suggestions for all your cobra commands and flags
 CoPrompt will check if your command includes the annotation "coprompt". If it's included the value will be
 provided to the HandleDynamicSuggestions function.
- */
+*/
 func Run(rootCmd *cobra.Command, fn HandleDynamicSuggestions, options []prompt.Option) {
 	lRootCmd = rootCmd
 	lHandleDynamicSuggestions = fn
@@ -27,7 +31,7 @@ func Run(rootCmd *cobra.Command, fn HandleDynamicSuggestions, options []prompt.O
 	p := prompt.New(
 		executor,
 		completer,
-		options...
+		options...,
 	)
 	p.Run()
 }
