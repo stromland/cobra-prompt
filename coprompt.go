@@ -79,24 +79,24 @@ func (coprompt CoPrompt) collectSuggestions(command *cobra.Command, d prompt.Doc
 	persistentFlags := parentPersistentFlags(command)
 	flags := append([]*pflag.FlagSet{command.LocalNonPersistentFlags()}, persistentFlags...)
 
-	loopFlags := func(fn func(flag *pflag.Flag)) {
+	flagLoop := func(fn func(flag *pflag.Flag)) {
 		for _, fs := range flags {
 			fs.VisitAll(fn)
 		}
 	}
 
+	flagLoop(func(flag *pflag.Flag) {
+		if flag.Changed {
+			flag.Value.Set(flag.DefValue)
+		}
+	})
+
 	if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
-		loopFlags(func(flag *pflag.Flag) {
-			if flag.Changed {
-				flag.Value.Set(flag.DefValue)
-			}
+		flagLoop(func(flag *pflag.Flag) {
 			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
 		})
 	} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") {
-		loopFlags(func(flag *pflag.Flag) {
-			if flag.Changed {
-				flag.Value.Set(flag.DefValue)
-			}
+		flagLoop(func(flag *pflag.Flag) {
 			if flag.Shorthand != "" {
 				suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
 			}
