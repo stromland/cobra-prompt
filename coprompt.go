@@ -8,102 +8,67 @@ import (
 	"strings"
 )
 
-/*
-HandleDynamicSuggestions
-CoPrompt will check if your command includes the annotation "coprompt". If it's included the value will be
-provided to the HandleDynamicSuggestions function.
-*/
-type HandleDynamicSuggestions func(annotation string, document prompt.Document) []prompt.Suggest
+// CALLBACK_ANNOTATION
+const CALLBACK_ANNOTATION = "coprompt"
 
+// CoPrompt struct
+// DynamicSuggestionsFunc will be executed if an command has CALLBACK_ANNOTATION as an annotation. If it's included the
+// value will be provided to the DynamicSuggestionsFunc function.
 type CoPrompt struct {
-	RootCmd                  *cobra.Command
-	GoPromptOptions          []prompt.Option
-	HandleDynamicSuggestions HandleDynamicSuggestions
+	RootCmd                *cobra.Command
+	GoPromptOptions        []prompt.Option
+	DynamicSuggestionsFunc func(annotation string, document prompt.Document) []prompt.Suggest
 }
 
-const CallbackAnnotation = "coprompt"
-
-/*
-Run
-CoPrompt will automatically generate suggestions for all your cobra commands and flags
-CoPrompt will check if your command includes the annotation "coprompt". If it's included the value will be
-provided to the HandleDynamicSuggestions function.
-*/
+// Run will automatically generate suggestions for all your cobra commands and flags and execute the commands
 func (coprompt CoPrompt) Run() {
 	p := prompt.New(
-		coprompt.copromtExecutor(),
-		coprompt.copromptCompleter(),
+		func(in string) {
+			promptArgs := strings.Fields(in)
+			os.Args = append([]string{os.Args[0]}, promptArgs...)
+			coprompt.RootCmd.Execute()
+		},
+		func(d prompt.Document) []prompt.Suggest {
+			return findSuggestions(coprompt, d)
+		},
 		coprompt.GoPromptOptions...,
 	)
 	p.Run()
 }
 
-// executor executes command and print the output.
-func (coprompt CoPrompt) copromtExecutor() func(string) {
-	return func(in string) {
-		promptArgs := strings.Fields(in)
-		os.Args = append([]string{os.Args[0]}, promptArgs...)
-		coprompt.RootCmd.Execute()
-	}
-}
+func findSuggestions(coprompt CoPrompt, d prompt.Document) []prompt.Suggest {
+	command := coprompt.RootCmd
+	args := strings.Fields(d.CurrentLine())
 
-// completer returns the completion items from user input.
-func (coprompt CoPrompt) copromptCompleter() func(prompt.Document) []prompt.Suggest {
-	return func(d prompt.Document) []prompt.Suggest {
-		currentCommand := coprompt.RootCmd
-		cText := d.CurrentLine()
-		args := strings.Fields(cText)
-
-		for _, v := range args {
-			if currentCommand.HasAvailableSubCommands() {
-				for _, c := range currentCommand.Commands() {
-					if c.Name() == v {
-						currentCommand = c
-						break
-					}
+	for _, arg := range args {
+		if command.HasAvailableSubCommands() {
+			for _, cmd := range command.Commands() {
+				if cmd.Name() == arg || isAlias(arg, cmd.Aliases) {
+					command = cmd
+					break
 				}
-			} else {
-				break
 			}
+		} else {
+			break
 		}
-
-		suggestions := coprompt.collectSuggestions(currentCommand, d)
-
-		return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
 	}
-}
 
-func (coprompt CoPrompt) collectSuggestions(command *cobra.Command, d prompt.Document) []prompt.Suggest {
 	var suggestions []prompt.Suggest
-
-	persistentFlags := parentPersistentFlags(command)
-	flags := append([]*pflag.FlagSet{command.LocalNonPersistentFlags()}, persistentFlags...)
-
-	flagLoop := func(fn func(flag *pflag.Flag)) {
-		for _, fs := range flags {
-			fs.VisitAll(fn)
-		}
-	}
-
-	flagLoop(func(flag *pflag.Flag) {
+	command.Flags().VisitAll(func(flag *pflag.Flag) {
 		if flag.Changed {
 			flag.Value.Set(flag.DefValue)
 		}
+		if flag.Hidden {
+			return
+		}
+		if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
+			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
+		} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") && flag.Shorthand != "" {
+			suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
+		}
 	})
 
-	if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
-		flagLoop(func(flag *pflag.Flag) {
-			if !flag.Hidden {
-				suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
-			}
-		})
-	} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") {
-		flagLoop(func(flag *pflag.Flag) {
-			if flag.Shorthand != "" && !flag.Hidden {
-				suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
-			}
-		})
-	} else if command.HasAvailableSubCommands() {
+	if command.HasAvailableSubCommands() {
 		for _, c := range command.Commands() {
 			if !c.Hidden {
 				suggestions = append(suggestions, prompt.Suggest{Text: c.Name(), Description: c.Short})
@@ -111,18 +76,18 @@ func (coprompt CoPrompt) collectSuggestions(command *cobra.Command, d prompt.Doc
 		}
 	}
 
-	if coprompt.HandleDynamicSuggestions != nil && command.Annotations[CallbackAnnotation] != "" {
-		annotation := command.Annotations[CallbackAnnotation]
-		suggestions = coprompt.HandleDynamicSuggestions(annotation, d)
+	if coprompt.DynamicSuggestionsFunc != nil && command.Annotations[CALLBACK_ANNOTATION] != "" {
+		annotation := command.Annotations[CALLBACK_ANNOTATION]
+		suggestions = append(suggestions, coprompt.DynamicSuggestionsFunc(annotation, d)...)
 	}
-
-	return suggestions
+	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
 }
 
-func parentPersistentFlags(cc *cobra.Command) []*pflag.FlagSet {
-	fs := []*pflag.FlagSet{cc.PersistentFlags()}
-	if cc.HasParent() {
-		fs = append(fs, parentPersistentFlags(cc.Parent())...)
+func isAlias(name string, aliases []string) bool {
+	for _, alias := range aliases {
+		if name == alias {
+			return true
+		}
 	}
-	return fs
+	return false
 }
