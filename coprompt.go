@@ -93,11 +93,13 @@ func (coprompt CoPrompt) collectSuggestions(command *cobra.Command, d prompt.Doc
 
 	if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
 		flagLoop(func(flag *pflag.Flag) {
-			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
+			if !flag.Hidden {
+				suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
+			}
 		})
 	} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") {
 		flagLoop(func(flag *pflag.Flag) {
-			if flag.Shorthand != "" {
+			if flag.Shorthand != "" && !flag.Hidden {
 				suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
 			}
 		})
