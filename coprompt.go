@@ -41,7 +41,7 @@ func (coprompt CoPrompt) Run() {
 // executor executes command and print the output.
 func (coprompt CoPrompt) copromtExecutor() func(string) {
 	return func(in string) {
-		promptArgs := strings.Split(in, " ")
+		promptArgs := strings.Fields(in)
 		os.Args = append([]string{os.Args[0]}, promptArgs...)
 		coprompt.RootCmd.Execute()
 	}
@@ -109,9 +109,11 @@ func (coprompt CoPrompt) collectSuggestions(command *cobra.Command, d prompt.Doc
 				suggestions = append(suggestions, prompt.Suggest{Text: c.Name(), Description: c.Short})
 			}
 		}
-	} else if coprompt.HandleDynamicSuggestions != nil && command.Annotations[CallbackAnnotation] != "" {
-		copromptAnnotation := command.Annotations[CallbackAnnotation]
-		suggestions = coprompt.HandleDynamicSuggestions(copromptAnnotation, d)
+	}
+
+	if coprompt.HandleDynamicSuggestions != nil && command.Annotations[CallbackAnnotation] != "" {
+		annotation := command.Annotations[CallbackAnnotation]
+		suggestions = coprompt.HandleDynamicSuggestions(annotation, d)
 	}
 
 	return suggestions
