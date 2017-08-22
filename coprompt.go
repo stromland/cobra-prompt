@@ -54,7 +54,7 @@ func findSuggestions(coprompt CoPrompt, d prompt.Document) []prompt.Suggest {
 	}
 
 	var suggestions []prompt.Suggest
-	command.Flags().VisitAll(func(flag *pflag.Flag) {
+	addFlags := func(flag *pflag.Flag) {
 		if flag.Changed {
 			flag.Value.Set(flag.DefValue)
 		}
@@ -66,7 +66,10 @@ func findSuggestions(coprompt CoPrompt, d prompt.Document) []prompt.Suggest {
 		} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") && flag.Shorthand != "" {
 			suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
 		}
-	})
+	}
+
+	command.LocalFlags().VisitAll(addFlags)
+	command.InheritedFlags().VisitAll(addFlags)
 
 	if command.HasAvailableSubCommands() {
 		for _, c := range command.Commands() {
