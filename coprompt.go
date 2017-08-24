@@ -20,7 +20,7 @@ type CoPrompt struct {
 	DynamicSuggestionsFunc func(annotation string, document prompt.Document) []prompt.Suggest
 }
 
-// Run will automatically generate suggestions for all your cobra commands and flags and execute the commands
+// Run will automatically generate suggestions for all your cobra commands and flags and execute the selected commands
 func (coprompt CoPrompt) Run() {
 	p := prompt.New(
 		func(in string) {
@@ -40,17 +40,8 @@ func findSuggestions(coprompt CoPrompt, d prompt.Document) []prompt.Suggest {
 	command := coprompt.RootCmd
 	args := strings.Fields(d.CurrentLine())
 
-	for _, arg := range args {
-		if command.HasAvailableSubCommands() {
-			for _, cmd := range command.Commands() {
-				if cmd.Name() == arg || isAlias(arg, cmd.Aliases) {
-					command = cmd
-					break
-				}
-			}
-		} else {
-			break
-		}
+	if found, _, err := command.Find(args); err == nil {
+		command = found
 	}
 
 	var suggestions []prompt.Suggest
@@ -84,13 +75,4 @@ func findSuggestions(coprompt CoPrompt, d prompt.Document) []prompt.Suggest {
 		suggestions = append(suggestions, coprompt.DynamicSuggestionsFunc(annotation, d)...)
 	}
 	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
-}
-
-func isAlias(name string, aliases []string) bool {
-	for _, alias := range aliases {
-		if name == alias {
-			return true
-		}
-	}
-	return false
 }
