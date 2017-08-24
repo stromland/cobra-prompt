@@ -1,4 +1,4 @@
-# CoPrompt
+# Cobra-Prompt
 
 Connect cobra and go-prompt 
 
@@ -8,4 +8,4 @@ https://github.com/spf13/cobra
 
 
 Example
-https://github.com/stromland/coprompt-example
+https://github.com/stromland/cobra-prompt-example
