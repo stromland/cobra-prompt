@@ -11,17 +11,25 @@ import (
 // CALLBACK_ANNOTATION
 const CALLBACK_ANNOTATION = "cobra-prompt"
 
-// CobraPrompt struct
-// DynamicSuggestionsFunc will be executed if an command has CALLBACK_ANNOTATION as an annotation. If it's included the
-// value will be provided to the DynamicSuggestionsFunc function.
+// CobraPrompt requires RootCmd to run
 type CobraPrompt struct {
-	RootCmd                *cobra.Command
-	GoPromptOptions        []prompt.Option
+	// RootCmd is the start point, all its sub commands and flags will be available as suggestions
+	RootCmd *cobra.Command
+
+	// GoPromptOptions is for customize go-prompt
+	// see https://github.com/c-bata/go-prompt/blob/master/option.go
+	GoPromptOptions []prompt.Option
+
+	// DynamicSuggestionsFunc will be executed if an command has CALLBACK_ANNOTATION as an annotation. If it's included
+	// the value will be provided to the DynamicSuggestionsFunc function.
 	DynamicSuggestionsFunc func(annotation string, document prompt.Document) []prompt.Suggest
-	ResetFlagsFlag         bool
+
+	// ResetFlagsFlag will add a new persistent flag to RootCmd. This flags can be used to turn off flags value reset
+	ResetFlagsFlag bool
 }
 
-// Run will automatically generate suggestions for all your cobra commands and flags and execute the selected commands
+// Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
+// and execute the selected commands. Run will also reset all given flags by default, see ResetFlagsFlag
 func (co CobraPrompt) Run() {
 	co.prepare()
 	p := prompt.New(
@@ -41,7 +49,7 @@ func (co CobraPrompt) Run() {
 func (co CobraPrompt) prepare() {
 	if co.ResetFlagsFlag {
 		co.RootCmd.PersistentFlags().BoolP("flags-no-reset", "",
-			false, "Turn off flags explicit")
+			false, "Flags will no longer reset to default value")
 	}
 }
 
