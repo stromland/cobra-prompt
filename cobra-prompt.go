@@ -1,11 +1,12 @@
 package cobraprompt
 
 import (
+	"os"
+	"strings"
+
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"os"
-	"strings"
 )
 
 // CALLBACK_ANNOTATION
