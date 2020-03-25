@@ -17,3 +17,6 @@
 .idea/
 
 vendor/
+
+example/cobra-prompt
+example/example
