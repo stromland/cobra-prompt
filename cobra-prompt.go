@@ -9,8 +9,11 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// CALLBACK_ANNOTATION
-const CALLBACK_ANNOTATION = "cobra-prompt"
+// CallbackAnnotation for dynamic suggestions.
+const CallbackAnnotation = "cobra-prompt"
+
+// PersistFlagsFlag constant
+const PersistFlagsFlag = "persist-flags"
 
 // CobraPrompt requires RootCmd to run
 type CobraPrompt struct {
@@ -23,14 +26,23 @@ type CobraPrompt struct {
 
 	// DynamicSuggestionsFunc will be executed if an command has CALLBACK_ANNOTATION as an annotation. If it's included
 	// the value will be provided to the DynamicSuggestionsFunc function.
-	DynamicSuggestionsFunc func(annotation string, document prompt.Document) []prompt.Suggest
+	DynamicSuggestionsFunc func(annotation string, document *prompt.Document) []prompt.Suggest
 
-	// ResetFlagsFlag will add a new persistent flag to RootCmd. This flags can be used to turn off flags value reset
-	ResetFlagsFlag bool
+	// PersistFlagValues will persist flags. For example have verbose turned on every command.
+	PersistFlagValues bool
+}
+
+// NewCobraPrompt
+func NewCobraPrompt(cmd *cobra.Command) *CobraPrompt {
+	return &CobraPrompt{
+		RootCmd:           cmd,
+		GoPromptOptions:   []prompt.Option{},
+		PersistFlagValues: true,
+	}
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
-// and execute the selected commands. Run will also reset all given flags by default, see ResetFlagsFlag
+// and execute the selected commands. Run will also reset all given flags by default, see PersistFlagValues
 func (co CobraPrompt) Run() {
 	co.prepare()
 	p := prompt.New(
@@ -40,7 +52,7 @@ func (co CobraPrompt) Run() {
 			co.RootCmd.Execute()
 		},
 		func(d prompt.Document) []prompt.Suggest {
-			return findSuggestions(co, d)
+			return findSuggestions(&co, &d)
 		},
 		co.GoPromptOptions...,
 	)
@@ -48,13 +60,13 @@ func (co CobraPrompt) Run() {
 }
 
 func (co CobraPrompt) prepare() {
-	if co.ResetFlagsFlag {
-		co.RootCmd.PersistentFlags().BoolP("flags-no-reset", "",
-			false, "Flags will no longer reset to default value")
+	if co.PersistFlagValues {
+		co.RootCmd.PersistentFlags().BoolP(PersistFlagsFlag, "",
+			false, "Flags will persist last given value")
 	}
 }
 
-func findSuggestions(co CobraPrompt, d prompt.Document) []prompt.Suggest {
+func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	command := co.RootCmd
 	args := strings.Fields(d.CurrentLine())
 
@@ -63,9 +75,9 @@ func findSuggestions(co CobraPrompt, d prompt.Document) []prompt.Suggest {
 	}
 
 	var suggestions []prompt.Suggest
-	resetFlags, _ := command.Flags().GetBool("flags-no-reset")
+	persistFlags, _ := command.Flags().GetBool(PersistFlagsFlag)
 	addFlags := func(flag *pflag.Flag) {
-		if flag.Changed && !resetFlags {
+		if flag.Changed && !persistFlags {
 			flag.Value.Set(flag.DefValue)
 		}
 		if flag.Hidden {
@@ -89,7 +101,7 @@ func findSuggestions(co CobraPrompt, d prompt.Document) []prompt.Suggest {
 		}
 	}
 
-	annotation := command.Annotations[CALLBACK_ANNOTATION]
+	annotation := command.Annotations[CallbackAnnotation]
 	if co.DynamicSuggestionsFunc != nil && annotation != "" {
 		suggestions = append(suggestions, co.DynamicSuggestionsFunc(annotation, d)...)
 	}
