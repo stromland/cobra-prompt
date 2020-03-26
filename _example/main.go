@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/c-bata/go-prompt"
 	cobraprompt "github.com/stromland/cobra-prompt"
-	"github.com/stromland/cobra-prompt/example/cmd"
+	"github.com/stromland/cobra-prompt/_example/cmd"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 		DynamicSuggestionsFunc: handleDynamicSuggestions,
 		PersistFlagValues:      true,
 		GoPromptOptions: []prompt.Option{
-			prompt.OptionTitle("cobra-prompt-example"),
+			prompt.OptionTitle("cobra-prompt"),
 			prompt.OptionPrefix(">(^'^)> "),
 			prompt.OptionMaxSuggestion(10),
 		},

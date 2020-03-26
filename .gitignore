@@ -18,5 +18,5 @@
 
 vendor/
 
-example/cobra-prompt
-example/example
+_example/cobra-prompt
+_example/_example

@@ -22,7 +22,7 @@ go get github.com/stromland/cobra-prompt
 ## Explore the example
 
 ```
-cd example
+cd _example
 go build -o cobra-prompt
 ./cobra-prompt
 ```
