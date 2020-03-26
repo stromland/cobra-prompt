@@ -12,8 +12,8 @@ import (
 // CallbackAnnotation for dynamic suggestions.
 const CallbackAnnotation = "cobra-prompt"
 
-// PersistFlagsFlag constant
-const PersistFlagsFlag = "persist-flags"
+// PersistFlagValuesFlag the flag that will be avaiailable when PersistFlagValues is true
+const PersistFlagValuesFlag = "persist-flag-values"
 
 // CobraPrompt requires RootCmd to run
 type CobraPrompt struct {
@@ -24,21 +24,12 @@ type CobraPrompt struct {
 	// see https://github.com/c-bata/go-prompt/blob/master/option.go
 	GoPromptOptions []prompt.Option
 
-	// DynamicSuggestionsFunc will be executed if an command has CALLBACK_ANNOTATION as an annotation. If it's included
+	// DynamicSuggestionsFunc will be executed if an command has CallbackAnnotation as an annotation. If it's included
 	// the value will be provided to the DynamicSuggestionsFunc function.
 	DynamicSuggestionsFunc func(annotation string, document *prompt.Document) []prompt.Suggest
 
 	// PersistFlagValues will persist flags. For example have verbose turned on every command.
 	PersistFlagValues bool
-}
-
-// NewCobraPrompt
-func NewCobraPrompt(cmd *cobra.Command) *CobraPrompt {
-	return &CobraPrompt{
-		RootCmd:           cmd,
-		GoPromptOptions:   []prompt.Option{},
-		PersistFlagValues: true,
-	}
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -61,8 +52,8 @@ func (co CobraPrompt) Run() {
 
 func (co CobraPrompt) prepare() {
 	if co.PersistFlagValues {
-		co.RootCmd.PersistentFlags().BoolP(PersistFlagsFlag, "",
-			false, "Flags will persist last given value")
+		co.RootCmd.PersistentFlags().BoolP(PersistFlagValuesFlag, "",
+			false, "Persist last given value for flags")
 	}
 }
 
@@ -75,9 +66,9 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	}
 
 	var suggestions []prompt.Suggest
-	persistFlags, _ := command.Flags().GetBool(PersistFlagsFlag)
+	persistFlagValues, _ := command.Flags().GetBool(PersistFlagValuesFlag)
 	addFlags := func(flag *pflag.Flag) {
-		if flag.Changed && !persistFlags {
+		if flag.Changed && !persistFlagValues {
 			flag.Value.Set(flag.DefValue)
 		}
 		if flag.Hidden {

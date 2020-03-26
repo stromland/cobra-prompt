@@ -29,14 +29,16 @@ func init() {
 }
 
 func TestFindSuggestions(t *testing.T) {
-	cp := NewCobraPrompt(rootCmd)
+	cp := &CobraPrompt{
+		RootCmd: rootCmd,
+	}
 	buf := prompt.NewBuffer()
 
 	buf.InsertText("", false, true)
 	suggestions := findSuggestions(cp, buf.Document())
 	hasLen := assert.Len(t, suggestions, 1, "Should find 1 suggestion")
 	if hasLen {
-		assert.Equal(t, "get", suggestions[0].Text, "Should find get command")
+		assert.Equal(t, getCmd.Name(), suggestions[0].Text, "Should find get command")
 	}
 
 	buf.InsertText("get ", false, true)
@@ -44,8 +46,8 @@ func TestFindSuggestions(t *testing.T) {
 
 	hasLen = assert.Len(t, suggestions, 2, "Should find 2 sub commands under get")
 	if hasLen {
-		assert.Equal(t, getObjectCmd.Use, suggestions[0].Text, "Should find object command")
-		assert.Equal(t, getThingCmd.Use, suggestions[1].Text, "Should find thing command")
+		assert.Equal(t, getObjectCmd.Name(), suggestions[0].Text, "Should find object command")
+		assert.Equal(t, getThingCmd.Name(), suggestions[1].Text, "Should find thing command")
 	}
 
 	buf.InsertText("object -", false, true)
