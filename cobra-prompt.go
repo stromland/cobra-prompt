@@ -15,7 +15,8 @@ const CallbackAnnotation = "cobra-prompt"
 // PersistFlagValuesFlag the flag that will be avaiailable when PersistFlagValues is true
 const PersistFlagValuesFlag = "persist-flag-values"
 
-// CobraPrompt requires RootCmd to run
+// CobraPrompt given a Cobra command it will make every flag and sub commands available as suggestions.
+// Command.Short will be used as description for the suggestion.
 type CobraPrompt struct {
 	// RootCmd is the start point, all its sub commands and flags will be available as suggestions
 	RootCmd *cobra.Command
