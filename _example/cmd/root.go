@@ -7,10 +7,10 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stromland/cobra-prompt"
+	cobraprompt "github.com/stromland/cobra-prompt"
 )
 
-const CallbackAnnotation = cobraprompt.CALLBACK_ANNOTATION
+const CallbackAnnotation = cobraprompt.CallbackAnnotation
 
 var cfgFile string
 
