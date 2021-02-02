@@ -7,6 +7,7 @@ import (
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.uber.org/atomic"
 )
 
 // CALLBACK_ANNOTATION
@@ -27,6 +28,12 @@ type CobraPrompt struct {
 
 	// ResetFlagsFlag will add a new persistent flag to RootCmd. This flags can be used to turn off flags value reset
 	ResetFlagsFlag bool
+
+	// SilentPrompt suppress the prompt when there's no input
+	EnableSilentPrompt bool
+
+	// SilentPromptWithShowAtStart suppress the prompt when there's no input, but show at start
+	EnableShowAtStart bool
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -54,7 +61,28 @@ func (co CobraPrompt) prepare() {
 	}
 }
 
+var (
+	isFirstRun atomic.Bool
+)
+
 func findSuggestions(co CobraPrompt, d prompt.Document) []prompt.Suggest {
+
+	if isFirstRun.CAS(false, true) {
+		// If showAtStart not enabled, neglect the prompt.completion.showAtStart
+		if !co.EnableShowAtStart && co.EnableSilentPrompt {
+			if len(d.CurrentLine()) == 0 {
+				return nil
+			}
+		}
+	} else {
+		// If there's no input, no need to prompt.
+		if co.EnableSilentPrompt {
+			if len(d.CurrentLine()) == 0 {
+				return nil
+			}
+		}
+	}
+
 	command := co.RootCmd
 	args := strings.Fields(d.CurrentLine())
 
