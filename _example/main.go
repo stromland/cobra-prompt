@@ -9,7 +9,6 @@ import (
 func main() {
 	shell := &cobraprompt.CobraPrompt{
 		RootCmd:                  cmd.RootCmd,
-		DynamicSuggestionsFunc:   handleDynamicSuggestions,
 		PersistFlagValues:        true,
 		ShowHelpCommandAndFlags:  true,
 		DisableCompletionCommand: true,
@@ -19,22 +18,13 @@ func main() {
 			prompt.OptionPrefix(">(^'^)> "),
 			prompt.OptionMaxSuggestion(10),
 		},
+		DynamicSuggestionsFunc: func(annotationValue string, document *prompt.Document) []prompt.Suggest {
+			if suggestions := cmd.GetFoodDynamic(annotationValue); suggestions != nil {
+				return suggestions
+			}
+
+			return []prompt.Suggest{}
+		},
 	}
 	shell.Run()
-}
-
-func handleDynamicSuggestions(annotationValue string, _ *prompt.Document) []prompt.Suggest {
-	switch annotationValue {
-	case cmd.GET_FOOD_DYNAMIC:
-		return GetFood()
-	default:
-		return []prompt.Suggest{}
-	}
-}
-
-func GetFood() []prompt.Suggest {
-	return []prompt.Suggest{
-		{Text: "apple", Description: "Green apple"},
-		{Text: "tomato", Description: "Red tomato"},
-	}
 }
