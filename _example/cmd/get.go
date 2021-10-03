@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	cobraprompt "github.com/stromland/cobra-prompt"
 )
+
+var GET_FOOD_DYNAMIC = "GetFood"
 
 var getCmd = &cobra.Command{
 	Use:     "get",
@@ -17,7 +20,7 @@ var getFoodCmd = &cobra.Command{
 	Use:   "food",
 	Short: "Get some food",
 	Annotations: map[string]string{
-		CallbackAnnotation: "GetFood",
+		cobraprompt.DynamicSuggestionsAnnotation: GET_FOOD_DYNAMIC,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")

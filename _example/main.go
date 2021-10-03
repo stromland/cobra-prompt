@@ -13,6 +13,7 @@ func main() {
 		PersistFlagValues:        true,
 		ShowHelpCommandAndFlags:  true,
 		DisableCompletionCommand: true,
+		AddDefaultExitCommand:    true,
 		GoPromptOptions: []prompt.Option{
 			prompt.OptionTitle("cobra-prompt"),
 			prompt.OptionPrefix(">(^'^)> "),
@@ -22,9 +23,9 @@ func main() {
 	shell.Run()
 }
 
-func handleDynamicSuggestions(annotation string, _ *prompt.Document) []prompt.Suggest {
-	switch annotation {
-	case "GetFood":
+func handleDynamicSuggestions(annotationValue string, _ *prompt.Document) []prompt.Suggest {
+	switch annotationValue {
+	case cmd.GET_FOOD_DYNAMIC:
 		return GetFood()
 	default:
 		return []prompt.Suggest{}

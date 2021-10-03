@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// CallbackAnnotation for dynamic suggestions.
-const CallbackAnnotation = "cobra-prompt"
+// DynamicSuggestionsAnnotation for dynamic suggestions.
+const DynamicSuggestionsAnnotation = "cobra-prompt-dynamic-suggestions"
 
 // PersistFlagValuesFlag the flag that will be avaiailable when PersistFlagValues is true
 const PersistFlagValuesFlag = "persist-flag-values"
@@ -27,7 +27,7 @@ type CobraPrompt struct {
 
 	// DynamicSuggestionsFunc will be executed if an command has CallbackAnnotation as an annotation. If it's included
 	// the value will be provided to the DynamicSuggestionsFunc function.
-	DynamicSuggestionsFunc func(annotation string, document *prompt.Document) []prompt.Suggest
+	DynamicSuggestionsFunc func(annotationValue string, document *prompt.Document) []prompt.Suggest
 
 	// PersistFlagValues will persist flags. For example have verbose turned on every command.
 	PersistFlagValues bool
@@ -129,7 +129,7 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		}
 	}
 
-	annotation := command.Annotations[CallbackAnnotation]
+	annotation := command.Annotations[DynamicSuggestionsAnnotation]
 	if co.DynamicSuggestionsFunc != nil && annotation != "" {
 		suggestions = append(suggestions, co.DynamicSuggestionsFunc(annotation, d)...)
 	}
