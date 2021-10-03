@@ -8,9 +8,11 @@ import (
 
 func main() {
 	shell := &cobraprompt.CobraPrompt{
-		RootCmd:                cmd.RootCmd,
-		DynamicSuggestionsFunc: handleDynamicSuggestions,
-		PersistFlagValues:      true,
+		RootCmd:                  cmd.RootCmd,
+		DynamicSuggestionsFunc:   handleDynamicSuggestions,
+		PersistFlagValues:        true,
+		ShowHelpCommandAndFlags:  true,
+		DisableCompletionCommand: true,
 		GoPromptOptions: []prompt.Option{
 			prompt.OptionTitle("cobra-prompt"),
 			prompt.OptionPrefix(">(^'^)> "),

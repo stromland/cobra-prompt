@@ -31,6 +31,21 @@ type CobraPrompt struct {
 
 	// PersistFlagValues will persist flags. For example have verbose turned on every command.
 	PersistFlagValues bool
+
+	// ShowHelpCommandAndFlags will make help command and flagg for every command available.
+	ShowHelpCommandAndFlags bool
+
+	// DisableCompletionCommand will make help command and flagg for every command available.
+	DisableCompletionCommand bool
+
+	// ShowHiddenCommands makes hidden commands available
+	ShowHiddenCommands bool
+
+	// ShowHiddenFlags makes hidden flags available
+	ShowHiddenFlags bool
+
+	// AddDefaultExitCommand
+	AddDefaultExitCommand bool
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -41,7 +56,9 @@ func (co CobraPrompt) Run() {
 		func(in string) {
 			promptArgs := strings.Fields(in)
 			os.Args = append([]string{os.Args[0]}, promptArgs...)
-			co.RootCmd.Execute()
+			if err := co.RootCmd.Execute(); err != nil {
+				co.RootCmd.PrintErrln(err)
+			}
 		},
 		func(d prompt.Document) []prompt.Suggest {
 			return findSuggestions(&co, &d)
@@ -52,6 +69,22 @@ func (co CobraPrompt) Run() {
 }
 
 func (co CobraPrompt) prepare() {
+	if co.ShowHelpCommandAndFlags {
+		// TODO: Add suggestions for help command
+		co.RootCmd.InitDefaultHelpCmd()
+	}
+	if co.DisableCompletionCommand {
+		co.RootCmd.CompletionOptions.DisableDefaultCmd = true
+	}
+	if co.AddDefaultExitCommand {
+		co.RootCmd.AddCommand(&cobra.Command{
+			Use:   "exit",
+			Short: "Exit prompt",
+			Run: func(cmd *cobra.Command, args []string) {
+				os.Exit(0)
+			},
+		})
+	}
 	if co.PersistFlagValues {
 		co.RootCmd.PersistentFlags().BoolP(PersistFlagValuesFlag, "",
 			false, "Persist last given value for flags")
@@ -72,7 +105,7 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		if flag.Changed && !persistFlagValues {
 			flag.Value.Set(flag.DefValue)
 		}
-		if flag.Hidden {
+		if flag.Hidden && !co.ShowHiddenFlags {
 			return
 		}
 		if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
@@ -87,8 +120,11 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 
 	if command.HasAvailableSubCommands() {
 		for _, c := range command.Commands() {
-			if !c.Hidden {
+			if !c.Hidden && !co.ShowHiddenCommands {
 				suggestions = append(suggestions, prompt.Suggest{Text: c.Name(), Description: c.Short})
+			}
+			if co.ShowHelpCommandAndFlags {
+				c.InitDefaultHelpFlag()
 			}
 		}
 	}
