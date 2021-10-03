@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -25,9 +23,9 @@ var getFoodCmd = &cobra.Command{
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		for _, v := range args {
 			if verbose {
-				fmt.Println("Here you go, take this:", v)
+				cmd.Println("Here you go, take this:", v)
 			} else {
-				fmt.Println(v)
+				cmd.Println(v)
 			}
 		}
 	},
