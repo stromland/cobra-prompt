@@ -7,15 +7,16 @@ import (
 )
 
 func main() {
-	shell := &cobraprompt.CobraPrompt{
+	prompt := &cobraprompt.CobraPrompt{
 		RootCmd:                  cmd.RootCmd,
 		PersistFlagValues:        true,
 		ShowHelpCommandAndFlags:  true,
 		DisableCompletionCommand: true,
 		AddDefaultExitCommand:    true,
+		OnError:                  cobraprompt.Exit,
 		GoPromptOptions: []prompt.Option{
 			prompt.OptionTitle("cobra-prompt"),
-			prompt.OptionPrefix(">(^'^)> "),
+			prompt.OptionPrefix(">(^!^)> "),
 			prompt.OptionMaxSuggestion(10),
 		},
 		DynamicSuggestionsFunc: func(annotationValue string, document *prompt.Document) []prompt.Suggest {
@@ -26,5 +27,6 @@ func main() {
 			return []prompt.Suggest{}
 		},
 	}
-	shell.Run()
+
+	prompt.Run()
 }

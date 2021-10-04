@@ -9,6 +9,13 @@ import (
 	"github.com/spf13/pflag"
 )
 
+type OnErrorAction string
+
+const (
+	Exit     OnErrorAction = "Exit"
+	Continue OnErrorAction = "Continue"
+)
+
 // DynamicSuggestionsAnnotation for dynamic suggestions.
 const DynamicSuggestionsAnnotation = "cobra-prompt-dynamic-suggestions"
 
@@ -44,8 +51,11 @@ type CobraPrompt struct {
 	// ShowHiddenFlags makes hidden flags available
 	ShowHiddenFlags bool
 
-	// AddDefaultExitCommand
+	// AddDefaultExitCommand adds a command for exiting prompt loop
 	AddDefaultExitCommand bool
+
+	// OnError decide
+	OnError OnErrorAction
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -57,7 +67,12 @@ func (co CobraPrompt) Run() {
 			promptArgs := strings.Fields(in)
 			os.Args = append([]string{os.Args[0]}, promptArgs...)
 			if err := co.RootCmd.Execute(); err != nil {
-				co.RootCmd.PrintErrln(err)
+				if co.RootCmd.SilenceErrors {
+					co.RootCmd.PrintErrln(err)
+				}
+				if co.OnError == Exit {
+					os.Exit(1)
+				}
 			}
 		},
 		func(d prompt.Document) []prompt.Suggest {
