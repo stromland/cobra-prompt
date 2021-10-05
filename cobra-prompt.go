@@ -32,10 +32,10 @@ type CobraPrompt struct {
 	// PersistFlagValues will persist flags. For example have verbose turned on every command.
 	PersistFlagValues bool
 
-	// ShowHelpCommandAndFlags will make help command and flagg for every command available.
+	// ShowHelpCommandAndFlags will make help command and flag for every command available.
 	ShowHelpCommandAndFlags bool
 
-	// DisableCompletionCommand will make help command and flagg for every command available.
+	// DisableCompletionCommand will disable the default completion command for cobra
 	DisableCompletionCommand bool
 
 	// ShowHiddenCommands makes hidden commands available
@@ -44,20 +44,33 @@ type CobraPrompt struct {
 	// ShowHiddenFlags makes hidden flags available
 	ShowHiddenFlags bool
 
-	// AddDefaultExitCommand
+	// AddDefaultExitCommand adds a command for exiting prompt loop
 	AddDefaultExitCommand bool
+
+	// OnErrorFunc handle error for command.Execute, if not set print error and exit
+	OnErrorFunc func(err error)
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
 // and execute the selected commands. Run will also reset all given flags by default, see PersistFlagValues
 func (co CobraPrompt) Run() {
+	if co.RootCmd == nil {
+		panic("RootCmd is not set. Please set RootCmd")
+	}
+
 	co.prepare()
+
 	p := prompt.New(
 		func(in string) {
 			promptArgs := strings.Fields(in)
 			os.Args = append([]string{os.Args[0]}, promptArgs...)
 			if err := co.RootCmd.Execute(); err != nil {
-				co.RootCmd.PrintErrln(err)
+				if co.OnErrorFunc != nil {
+					co.OnErrorFunc(err)
+				} else {
+					co.RootCmd.PrintErrln(err)
+					os.Exit(1)
+				}
 			}
 		},
 		func(d prompt.Document) []prompt.Suggest {
@@ -65,6 +78,7 @@ func (co CobraPrompt) Run() {
 		},
 		co.GoPromptOptions...,
 	)
+
 	p.Run()
 }
 
@@ -73,9 +87,11 @@ func (co CobraPrompt) prepare() {
 		// TODO: Add suggestions for help command
 		co.RootCmd.InitDefaultHelpCmd()
 	}
+
 	if co.DisableCompletionCommand {
 		co.RootCmd.CompletionOptions.DisableDefaultCmd = true
 	}
+
 	if co.AddDefaultExitCommand {
 		co.RootCmd.AddCommand(&cobra.Command{
 			Use:   "exit",
@@ -85,6 +101,7 @@ func (co CobraPrompt) prepare() {
 			},
 		})
 	}
+
 	if co.PersistFlagValues {
 		co.RootCmd.PersistentFlags().BoolP(PersistFlagValuesFlag, "",
 			false, "Persist last given value for flags")
