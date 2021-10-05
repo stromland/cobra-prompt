@@ -10,7 +10,7 @@ var errorCmd = &cobra.Command{
 	Use:   "error",
 	Short: "Returns error",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return errors.New("when an error accure you can decide if you want to continue or not by setting OnError")
+		return errors.New("when an error accure you can decide if you want to continue or not by handling error with OnErrorFunc")
 	},
 }
 
