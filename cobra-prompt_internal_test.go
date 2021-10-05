@@ -29,20 +29,18 @@ func init() {
 }
 
 func TestFindSuggestions(t *testing.T) {
-	cp := &CobraPrompt{
-		RootCmd: rootCmd,
-	}
+	options := FindSuggestionsOptions{}
 	buf := prompt.NewBuffer()
 
 	buf.InsertText("", false, true)
-	suggestions := findSuggestions(cp, buf.Document())
+	suggestions := FindSuggestions(rootCmd, buf.Document(), options)
 	hasLen := assert.Len(t, suggestions, 1, "Should find 1 suggestion")
 	if hasLen {
 		assert.Equal(t, getCmd.Name(), suggestions[0].Text, "Should find get command")
 	}
 
 	buf.InsertText("get ", false, true)
-	suggestions = findSuggestions(cp, buf.Document())
+	suggestions = FindSuggestions(rootCmd, buf.Document(), options)
 
 	hasLen = assert.Len(t, suggestions, 2, "Should find 2 sub commands under get")
 	if hasLen {
@@ -51,7 +49,7 @@ func TestFindSuggestions(t *testing.T) {
 	}
 
 	buf.InsertText("object -", false, true)
-	suggestions = findSuggestions(cp, buf.Document())
+	suggestions = FindSuggestions(rootCmd, buf.Document(), options)
 
 	hasLen = assert.Len(t, suggestions, 1, "Should find verbose flag")
 	if hasLen {
@@ -59,7 +57,7 @@ func TestFindSuggestions(t *testing.T) {
 	}
 
 	buf.InsertText("-", false, true)
-	suggestions = findSuggestions(cp, buf.Document())
+	suggestions = FindSuggestions(rootCmd, buf.Document(), options)
 
 	hasLen = assert.Len(t, suggestions, 1, "Should find verbose flag")
 	if hasLen {

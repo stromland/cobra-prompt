@@ -9,10 +9,8 @@ import (
 	"github.com/stromland/cobra-prompt/_example/cmd"
 )
 
-var advancedPrompt = &cobraprompt.CobraPrompt{
-	RootCmd:                  cmd.RootCmd,
+var advancedOption = cobraprompt.CobraPromptOptions{
 	PersistFlagValues:        true,
-	ShowHelpCommandAndFlags:  true,
 	DisableCompletionCommand: true,
 	AddDefaultExitCommand:    true,
 	GoPromptOptions: []prompt.Option{
@@ -20,12 +18,15 @@ var advancedPrompt = &cobraprompt.CobraPrompt{
 		prompt.OptionPrefix(">(^!^)> "),
 		prompt.OptionMaxSuggestion(10),
 	},
-	DynamicSuggestionsFunc: func(annotationValue string, document *prompt.Document) []prompt.Suggest {
-		if suggestions := cmd.GetFoodDynamic(annotationValue); suggestions != nil {
-			return suggestions
-		}
+	FindSuggestionsOptions: cobraprompt.FindSuggestionsOptions{
+		ShowHelpCommandAndFlags: true,
+		DynamicSuggestionsFunc: func(annotationValue string, document *prompt.Document) []prompt.Suggest {
+			if suggestions := cmd.GetFoodDynamic(annotationValue); suggestions != nil {
+				return suggestions
+			}
 
-		return []prompt.Suggest{}
+			return []prompt.Suggest{}
+		},
 	},
 	OnErrorFunc: func(err error) {
 		if strings.Contains(err.Error(), "unknown command") {
@@ -38,13 +39,12 @@ var advancedPrompt = &cobraprompt.CobraPrompt{
 	},
 }
 
-var simplePrompt = &cobraprompt.CobraPrompt{
-	RootCmd:                  cmd.RootCmd,
+var simpleOption = cobraprompt.CobraPromptOptions{
 	AddDefaultExitCommand:    true,
 	DisableCompletionCommand: true,
 }
 
 func main() {
-	// Change to simplePrompt to see the difference
-	advancedPrompt.Run()
+	// Change to simpleOptions to see the difference
+	cobraprompt.New(*cmd.RootCmd, advancedOption).Run()
 }
