@@ -49,6 +49,9 @@ type CobraPrompt struct {
 
 	// OnErrorFunc handle error for command.Execute, if not set print error and exit
 	OnErrorFunc func(err error)
+
+	// InArgsParser adds a custom parser for the command line arguments (default: strings.Fields)
+	InArgsParser func(args string) []string
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -62,7 +65,7 @@ func (co CobraPrompt) Run() {
 
 	p := prompt.New(
 		func(in string) {
-			promptArgs := strings.Fields(in)
+			promptArgs := co.parseArgs(in)
 			os.Args = append([]string{os.Args[0]}, promptArgs...)
 			if err := co.RootCmd.Execute(); err != nil {
 				if co.OnErrorFunc != nil {
@@ -80,6 +83,14 @@ func (co CobraPrompt) Run() {
 	)
 
 	p.Run()
+}
+
+func (co CobraPrompt) parseArgs(in string) []string {
+	if co.InArgsParser != nil {
+		return co.InArgsParser(in)
+	}
+
+	return strings.Fields(in)
 }
 
 func (co CobraPrompt) prepare() {
