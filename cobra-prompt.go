@@ -52,6 +52,9 @@ type CobraPrompt struct {
 
 	// InArgsParser adds a custom parser for the command line arguments (default: strings.Fields)
 	InArgsParser func(args string) []string
+
+	// SuggestionFilter will be uses when filtering suggestions as typing
+	SuggestionFilter func(suggestions []prompt.Suggest, document *prompt.Document) []prompt.Suggest
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
@@ -161,5 +164,10 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	if co.DynamicSuggestionsFunc != nil && annotation != "" {
 		suggestions = append(suggestions, co.DynamicSuggestionsFunc(annotation, d)...)
 	}
+
+	if co.SuggestionFilter != nil {
+		return co.SuggestionFilter(suggestions, d)
+	}
+
 	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
 }
