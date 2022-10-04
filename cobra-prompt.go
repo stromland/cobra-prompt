@@ -54,7 +54,7 @@ type CobraPrompt struct {
 	InArgsParser func(args string) []string
 
 	// SuggestionFilter will be uses when filtering suggestions as typing
-	SuggestionFilter func(completions []prompt.Suggest, sub string, ignoreCase bool) []prompt.Suggest
+	SuggestionFilter func(suggestions []prompt.Suggest, document *prompt.Document) []prompt.Suggest
 }
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
