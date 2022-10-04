@@ -166,7 +166,7 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	}
 
 	if co.SuggestionFilter != nil {
-		return co.SuggestionFilter(suggestions, d.GetWordBeforeCursor(), true)
+		return co.SuggestionFilter(suggestions, d)
 	}
 
 	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
