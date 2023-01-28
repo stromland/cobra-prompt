@@ -1,6 +1,7 @@
 package cobraprompt
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -60,6 +61,11 @@ type CobraPrompt struct {
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
 // and execute the selected commands. Run will also reset all given flags by default, see PersistFlagValues
 func (co CobraPrompt) Run() {
+	co.RunContext(nil)
+}
+
+// RunContext same as Run but with context
+func (co CobraPrompt) RunContext(ctx context.Context) {
 	if co.RootCmd == nil {
 		panic("RootCmd is not set. Please set RootCmd")
 	}
@@ -70,7 +76,7 @@ func (co CobraPrompt) Run() {
 		func(in string) {
 			promptArgs := co.parseArgs(in)
 			os.Args = append([]string{os.Args[0]}, promptArgs...)
-			if err := co.RootCmd.Execute(); err != nil {
+			if err := co.RootCmd.ExecuteContext(ctx); err != nil {
 				if co.OnErrorFunc != nil {
 					co.OnErrorFunc(err)
 				} else {
