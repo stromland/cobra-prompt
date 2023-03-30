@@ -2,6 +2,7 @@ package cobraprompt
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -146,19 +147,13 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 			return
 		}
 
-		// Check if the flag has a registered completion function
-		if compFunc, exists := command.GetFlagCompletionByName(flag.Name); exists {
-			completions, _ := compFunc(command, args, d.GetWordBeforeCursor())
-			for _, completion := range completions {
-				suggestions = append(suggestions, prompt.Suggest{Text: completion})
-			}
-		}
-
+		// Suggest flags
 		if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
 			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
 		} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") && flag.Shorthand != "" {
 			suggestions = append(suggestions, prompt.Suggest{Text: "-" + flag.Shorthand, Description: flag.Usage})
 		}
+
 	}
 
 	command.LocalFlags().VisitAll(addFlags)
@@ -171,6 +166,30 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 			}
 			if co.ShowHelpCommandAndFlags {
 				c.InitDefaultHelpFlag()
+			}
+		}
+	}
+
+	// Add flag vals
+	flagName := strings.ReplaceAll(d.GetWordBeforeCursorWithSpace(), " ", "") // wordsBeforeCursor[len(wordsBeforeCursor)-2]
+	fmt.Printf("Checking word %s\n", flagName)
+
+	// Check if the second last word is a flag
+	isFlag := strings.HasPrefix(flagName, "--") || strings.HasPrefix(flagName, "-")
+	if isFlag {
+		fmt.Printf("It's a flag\n")
+
+		// Remove prefix - or -- if present
+		flagName = strings.TrimLeft(flagName, "-")
+		fmt.Printf("Flagname: %s\n", flagName)
+
+		// Check if the flag has a registered completion function
+		if compFunc, exists := command.GetFlagCompletionByName(flagName); exists {
+			completions, _ := compFunc(command, args, flagName)
+			fmt.Printf("Completions exist: %+v\n", completions)
+
+			for _, completion := range completions {
+				suggestions = append(suggestions, prompt.Suggest{Text: completion})
 			}
 		}
 	}

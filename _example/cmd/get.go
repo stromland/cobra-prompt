@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/avirtopeanu-ionos/cobra"
 	"github.com/c-bata/go-prompt"
-	"github.com/spf13/cobra"
 	cobraprompt "github.com/stromland/cobra-prompt"
 )
 
@@ -36,9 +36,10 @@ var getFoodCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
+		name, _ := cmd.Flags().GetString("name")
 		for _, v := range args {
 			if verbose {
-				cmd.Println("Here you go, take this:", v)
+				cmd.Printf("Here you go, take this from %s: %s\n", name, v)
 			} else {
 				cmd.Println(v)
 			}
@@ -50,4 +51,8 @@ func init() {
 	RootCmd.AddCommand(getCmd)
 	getCmd.AddCommand(getFoodCmd)
 	getCmd.PersistentFlags().BoolP("verbose", "v", false, "Verbose log")
+	getCmd.PersistentFlags().StringP("name", "n", "John", "name of the person")
+	_ = getCmd.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"John", "Mary", "Anne"}, cobra.ShellCompDirectiveNoFileComp
+	})
 }

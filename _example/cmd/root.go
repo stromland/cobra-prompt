@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/avirtopeanu-ionos/cobra"
 )
 
 var RootCmd = &cobra.Command{
