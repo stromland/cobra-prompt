@@ -3,8 +3,8 @@ package cobraprompt
 import (
 	"testing"
 
+	"github.com/avirtopeanu-ionos/cobra"
 	"github.com/c-bata/go-prompt"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/avirtopeanu-ionos/cobra"
 	"github.com/c-bata/go-prompt"
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -145,6 +145,15 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		if flag.Hidden && !co.ShowHiddenFlags {
 			return
 		}
+
+		// Check if the flag has a registered completion function
+		if compFunc, exists := command.GetFlagCompletionByName(flag.Name); exists {
+			completions, _ := compFunc(command, args, d.GetWordBeforeCursor())
+			for _, completion := range completions {
+				suggestions = append(suggestions, prompt.Suggest{Text: completion})
+			}
+		}
+
 		if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
 			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
 		} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") && flag.Shorthand != "" {
