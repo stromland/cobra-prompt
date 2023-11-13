@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/avirtopeanu-ionos/cobra"
 	"github.com/c-bata/go-prompt"
+	"github.com/spf13/cobra"
 	cobraprompt "github.com/stromland/cobra-prompt"
 )
 

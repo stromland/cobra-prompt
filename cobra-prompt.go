@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/avirtopeanu-ionos/cobra"
 	"github.com/c-bata/go-prompt"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -184,7 +184,7 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		fmt.Printf("Flagname: %s\n", flagName)
 
 		// Check if the flag has a registered completion function
-		if compFunc, exists := command.GetFlagCompletionByName(flagName); exists {
+		if compFunc, exists := command.GetFlagCompletionFunc(flagName); exists {
 			completions, _ := compFunc(command, args, flagName)
 			fmt.Printf("Completions exist: %+v\n", completions)
 

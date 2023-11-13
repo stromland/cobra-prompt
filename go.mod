@@ -8,11 +8,10 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-tty v0.0.3 // indirect
 	github.com/pkg/term v1.2.0-beta.2 // indirect
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 )
-
-require github.com/avirtopeanu-ionos/cobra v0.0.0-20230330101425-b6ac4dd6d5d5 // TODO: Replace me with spf13/cobra when https://github.com/spf13/cobra/pull/1943
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

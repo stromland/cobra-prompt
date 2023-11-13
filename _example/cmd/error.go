@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/avirtopeanu-ionos/cobra"
+	"github.com/spf13/cobra"
 )
 
 var errorCmd = &cobra.Command{
