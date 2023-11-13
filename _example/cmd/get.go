@@ -41,7 +41,7 @@ var getFoodCmd = &cobra.Command{
 			if verbose {
 				cmd.Printf("Here you go, take this from %s: %s\n", name, v)
 			} else {
-				cmd.Println(v)
+				cmd.Printf("%s: %s\n", v, name)
 			}
 		}
 	},
