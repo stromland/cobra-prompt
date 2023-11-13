@@ -193,40 +193,10 @@ func getDynamicSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Documen
 	return suggestions
 }
 
-// getCurrentFlagAndValueContext parses the document to find the current flag, its partial value, and whether the context is suitable for flag value suggestions.
-func getCurrentFlagAndValueContext(d prompt.Document) (string, string, bool) {
-	textBeforeCursor := d.TextBeforeCursor()
-	args := strings.Fields(textBeforeCursor)
-
-	if len(args) == 0 {
-		return "", "", false
-	}
-
-	lastArg := args[len(args)-1]
-	secondLastArg := ""
-	if len(args) > 1 {
-		secondLastArg = args[len(args)-2]
-	}
-
-	isLastArgFlag := strings.HasPrefix(lastArg, "--") || strings.HasPrefix(lastArg, "-")
-	isSecondLastArgFlag := strings.HasPrefix(secondLastArg, "--") || strings.HasPrefix(secondLastArg, "-")
-
-	var currentFlag string
-	if isLastArgFlag {
-		currentFlag = strings.TrimLeft(lastArg, "-")
-		return currentFlag, "", true
-	} else if isSecondLastArgFlag {
-		currentFlag = strings.TrimLeft(secondLastArg, "-")
-		return currentFlag, lastArg, true
-	}
-
-	return "", "", false
-}
-
 // getFlagValueSuggestions returns a slice of flag value suggestions.
 func getFlagValueSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Document) []prompt.Suggest {
 	var suggestions []prompt.Suggest
-	currentFlag, partialValue, isFlagValueContext := getCurrentFlagAndValueContext(d)
+	currentFlag, partialValue, isFlagValueContext := getCurrentFlagAndValueContext(d, cmd)
 
 	if isFlagValueContext && currentFlag != "" {
 		// Check if the current flag is boolean. If so, do not suggest values.
@@ -244,4 +214,52 @@ func getFlagValueSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Docum
 		}
 	}
 	return suggestions
+}
+
+//  --- Flag utils. TODO: Export me to a standalone pkg
+
+// getCurrentFlagAndValueContext parses the document to find the current flag, its partial value, and whether the context is suitable for flag value suggestions.
+func getCurrentFlagAndValueContext(d prompt.Document, cmd *cobra.Command) (string, string, bool) {
+	textBeforeCursor := d.TextBeforeCursor()
+	args := strings.Fields(textBeforeCursor)
+
+	if len(args) == 0 {
+		return "", "", false
+	}
+
+	lastArg := args[len(args)-1]
+	secondLastArg := ""
+	if len(args) > 1 {
+		secondLastArg = args[len(args)-2]
+	}
+
+	// Determine if the last or second last argument is a flag
+	isLastArgFlag := strings.HasPrefix(lastArg, "-")
+	isSecondLastArgFlag := strings.HasPrefix(secondLastArg, "-")
+
+	var currentFlag string
+	if isLastArgFlag {
+		currentFlag = getFlagNameFromArg(lastArg, cmd)
+		return currentFlag, "", true
+	} else if isSecondLastArgFlag {
+		currentFlag = getFlagNameFromArg(secondLastArg, cmd)
+		return currentFlag, lastArg, true
+	}
+
+	return "", "", false
+}
+
+// getFlagNameFromArg extracts the flag name from a given argument, handling both shorthand and full flag names.
+func getFlagNameFromArg(arg string, cmd *cobra.Command) string {
+	trimmedArg := strings.TrimLeft(arg, "-")
+	if len(trimmedArg) == 1 { // Shorthand flag
+		if shorthandFlag := cmd.Flags().ShorthandLookup(trimmedArg); shorthandFlag != nil {
+			return shorthandFlag.Name
+		}
+	} else { // Full flag name
+		if fullFlag := cmd.Flags().Lookup(trimmedArg); fullFlag != nil {
+			return fullFlag.Name
+		}
+	}
+	return ""
 }
