@@ -13,9 +13,14 @@ func TestFindSuggestions(t *testing.T) {
 	getCmd := newTestCommand("get", "Get something")
 	getObjectCmd := newTestCommand("object", "Get the object")
 	getThingCmd := newTestCommand("thing", "The thing")
+	getFoodCmd := newTestCommand("food", "Get some food")
+	getFoodCmd.PersistentFlags().StringP("name", "n", "John", "name of the person to get some food from")
+	_ = getFoodCmd.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"John", "Mary", "Anne"}, cobra.ShellCompDirectiveNoFileComp
+	})
 
 	rootCmd.AddCommand(getCmd)
-	getCmd.AddCommand(getObjectCmd, getThingCmd)
+	getCmd.AddCommand(getObjectCmd, getThingCmd, getFoodCmd)
 	getObjectCmd.Flags().BoolP("verbose", "v", false, "Verbose log")
 
 	cp := &CobraPrompt{
@@ -25,32 +30,42 @@ func TestFindSuggestions(t *testing.T) {
 	tests := []struct {
 		name            string
 		input           string
-		expectedCount   int
 		expectedResults []string
 	}{
 		{
 			name:            "Root suggestions",
 			input:           "",
-			expectedCount:   1,
 			expectedResults: []string{"get"},
 		},
 		{
 			name:            "Get command suggestions",
 			input:           "get ",
-			expectedCount:   2,
-			expectedResults: []string{"object", "thing"},
+			expectedResults: []string{"object", "food", "thing"},
 		},
 		{
 			name:            "Verbose flag suggestions",
 			input:           "get object -",
-			expectedCount:   1,
 			expectedResults: []string{"-v"},
 		},
 		{
 			name:            "Verbose long flag suggestions",
 			input:           "get object --",
-			expectedCount:   1,
 			expectedResults: []string{"--verbose"},
+		},
+		{
+			name:            "Name flag suggestions after flag",
+			input:           "get food --name ",
+			expectedResults: []string{"John", "Mary", "Anne"},
+		},
+		{
+			name:            "Name flag suggestions with partial value",
+			input:           "get food --name J",
+			expectedResults: []string{"John"},
+		},
+		{
+			name:            "Shorthand name flag suggestions",
+			input:           "get food -n ",
+			expectedResults: []string{"John", "Mary", "Anne"},
 		},
 	}
 
@@ -60,9 +75,17 @@ func TestFindSuggestions(t *testing.T) {
 			buf.InsertText(test.input, false, true)
 			suggestions := cp.findSuggestions(*buf.Document())
 
-			assert.Len(t, suggestions, test.expectedCount, "Incorrect number of suggestions")
-			for i, expected := range test.expectedResults {
-				assert.Equal(t, expected, suggestions[i].Text, "Incorrect suggestion")
+			assert.Len(t, suggestions, len(test.expectedResults), "Incorrect number of suggestions")
+
+			actualSuggestionsMap := make(map[string]struct{})
+			for _, suggestion := range suggestions {
+				actualSuggestionsMap[suggestion.Text] = struct{}{}
+			}
+
+			// Check each expected result is present in actual suggestions
+			for _, expected := range test.expectedResults {
+				_, exists := actualSuggestionsMap[expected]
+				assert.True(t, exists, "Expected suggestion not found: "+expected)
 			}
 		})
 	}
