@@ -13,7 +13,7 @@ import (
 // DynamicSuggestionsAnnotation for dynamic suggestions.
 const DynamicSuggestionsAnnotation = "cobra-prompt-dynamic-suggestions"
 
-// PersistFlagValuesFlag the flag that will be avaiailable when PersistFlagValues is true
+// PersistFlagValuesFlag the flag that will be available when PersistFlagValues is true
 const PersistFlagValuesFlag = "persist-flag-values"
 
 // CobraPrompt given a Cobra command it will make every flag and sub commands available as suggestions.
@@ -26,7 +26,7 @@ type CobraPrompt struct {
 	// see https://github.com/c-bata/go-prompt/blob/master/option.go
 	GoPromptOptions []prompt.Option
 
-	// DynamicSuggestionsFunc will be executed if an command has CallbackAnnotation as an annotation. If it's included
+	// DynamicSuggestionsFunc will be executed if a command has CallbackAnnotation as an annotation. If it's included
 	// the value will be provided to the DynamicSuggestionsFunc function.
 	DynamicSuggestionsFunc func(annotationValue string, document *prompt.Document) []prompt.Suggest
 
@@ -60,58 +60,53 @@ type CobraPrompt struct {
 
 // Run will automatically generate suggestions for all cobra commands and flags defined by RootCmd
 // and execute the selected commands. Run will also reset all given flags by default, see PersistFlagValues
-func (co CobraPrompt) Run() {
-	co.RunContext(nil)
+func (co *CobraPrompt) Run() {
+	co.RunContext(context.Background())
 }
 
-// RunContext same as Run but with context
-func (co CobraPrompt) RunContext(ctx context.Context) {
+func (co *CobraPrompt) RunContext(ctx context.Context) {
 	if co.RootCmd == nil {
 		panic("RootCmd is not set. Please set RootCmd")
 	}
-
-	co.prepare()
+	co.prepareCommands()
 
 	p := prompt.New(
-		func(in string) {
-			promptArgs := co.parseArgs(in)
-			os.Args = append([]string{os.Args[0]}, promptArgs...)
-			if err := co.RootCmd.ExecuteContext(ctx); err != nil {
-				if co.OnErrorFunc != nil {
-					co.OnErrorFunc(err)
-				} else {
-					co.RootCmd.PrintErrln(err)
-					os.Exit(1)
-				}
-			}
-		},
-		func(d prompt.Document) []prompt.Suggest {
-			return findSuggestions(&co, &d)
-		},
+		co.executeCommand(ctx),
+		co.findSuggestions,
 		co.GoPromptOptions...,
 	)
-
 	p.Run()
 }
 
-func (co CobraPrompt) parseArgs(in string) []string {
-	if co.InArgsParser != nil {
-		return co.InArgsParser(in)
+func (co *CobraPrompt) executeCommand(ctx context.Context) func(string) {
+	return func(input string) {
+		args := co.parseInput(input)
+		os.Args = append([]string{os.Args[0]}, args...)
+		if err := co.RootCmd.ExecuteContext(ctx); err != nil {
+			if co.OnErrorFunc != nil {
+				co.OnErrorFunc(err)
+			} else {
+				co.RootCmd.PrintErrln(err)
+				os.Exit(1)
+			}
+		}
 	}
-
-	return strings.Fields(in)
 }
 
-func (co CobraPrompt) prepare() {
+func (co *CobraPrompt) parseInput(input string) []string {
+	if co.InArgsParser != nil {
+		return co.InArgsParser(input)
+	}
+	return strings.Fields(input)
+}
+
+func (co *CobraPrompt) prepareCommands() {
 	if co.ShowHelpCommandAndFlags {
-		// TODO: Add suggestions for help command
 		co.RootCmd.InitDefaultHelpCmd()
 	}
-
 	if co.DisableCompletionCommand {
 		co.RootCmd.CompletionOptions.DisableDefaultCmd = true
 	}
-
 	if co.AddDefaultExitCommand {
 		co.RootCmd.AddCommand(&cobra.Command{
 			Use:   "exit",
@@ -121,15 +116,13 @@ func (co CobraPrompt) prepare() {
 			},
 		})
 	}
-
 	if co.PersistFlagValues {
-		co.RootCmd.PersistentFlags().BoolP(PersistFlagValuesFlag, "",
-			false, "Persist last given value for flags")
+		co.RootCmd.PersistentFlags().BoolP(PersistFlagValuesFlag, "", false, "Persist flag values")
 	}
 }
 
 // findSuggestions generates command and flag suggestions for the prompt.
-func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+func (co *CobraPrompt) findSuggestions(d prompt.Document) []prompt.Suggest {
 	command := co.RootCmd
 	args := strings.Fields(d.CurrentLine())
 
@@ -144,14 +137,14 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	suggestions = append(suggestions, getDynamicSuggestions(command, co, d)...)
 
 	if co.SuggestionFilter != nil {
-		return co.SuggestionFilter(suggestions, d)
+		return co.SuggestionFilter(suggestions, &d)
 	}
 
 	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
 }
 
 // getFlagSuggestions returns a slice of flag suggestions.
-func getFlagSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+func getFlagSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Document) []prompt.Suggest {
 	var suggestions []prompt.Suggest
 	persistFlagValues, _ := cmd.Flags().GetBool(PersistFlagValuesFlag)
 
@@ -189,11 +182,11 @@ func getCommandSuggestions(cmd *cobra.Command, co *CobraPrompt) []prompt.Suggest
 }
 
 // getDynamicSuggestions returns a slice of dynamic arg completions.
-func getDynamicSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+func getDynamicSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Document) []prompt.Suggest {
 	var suggestions []prompt.Suggest
 	if dynamicSuggestionKey, ok := cmd.Annotations[DynamicSuggestionsAnnotation]; ok {
 		if co.DynamicSuggestionsFunc != nil {
-			dynamicSuggestions := co.DynamicSuggestionsFunc(dynamicSuggestionKey, d)
+			dynamicSuggestions := co.DynamicSuggestionsFunc(dynamicSuggestionKey, &d)
 			suggestions = append(suggestions, dynamicSuggestions...)
 		}
 	}
@@ -201,7 +194,7 @@ func getDynamicSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Docume
 }
 
 // getCurrentFlagAndValueContext parses the document to find the current flag, its partial value, and whether the context is suitable for flag value suggestions.
-func getCurrentFlagAndValueContext(d *prompt.Document) (string, string, bool) {
+func getCurrentFlagAndValueContext(d prompt.Document) (string, string, bool) {
 	textBeforeCursor := d.TextBeforeCursor()
 	args := strings.Fields(textBeforeCursor)
 
@@ -231,7 +224,7 @@ func getCurrentFlagAndValueContext(d *prompt.Document) (string, string, bool) {
 }
 
 // getFlagValueSuggestions returns a slice of flag value suggestions.
-func getFlagValueSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+func getFlagValueSuggestions(cmd *cobra.Command, co *CobraPrompt, d prompt.Document) []prompt.Suggest {
 	var suggestions []prompt.Suggest
 	currentFlag, partialValue, isFlagValueContext := getCurrentFlagAndValueContext(d)
 
