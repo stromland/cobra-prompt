@@ -46,5 +46,5 @@ var simplePrompt = &cobraprompt.CobraPrompt{
 
 func main() {
 	// Change to simplePrompt to see the difference
-	advancedPrompt.Run()
+	simplePrompt.Run()
 }

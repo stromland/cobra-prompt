@@ -170,26 +170,36 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		}
 	}
 
-	// Add flag vals
-	flagName := strings.ReplaceAll(d.GetWordBeforeCursorWithSpace(), " ", "") // wordsBeforeCursor[len(wordsBeforeCursor)-2]
-	fmt.Printf("Checking word %s\n", flagName)
+	// Use GetTextBeforeCursor to get the entire text before the cursor
+	textBeforeCursor := d.TextBeforeCursor()
+	beforeArgs := strings.Fields(textBeforeCursor)
 
-	// Check if the second last word is a flag
-	isFlag := strings.HasPrefix(flagName, "--") || strings.HasPrefix(flagName, "-")
-	if isFlag {
-		fmt.Printf("It's a flag\n")
+	// Logic to determine the current flag and its partial value
+	var currentFlag string
+	var partialValue string
+	for i := len(beforeArgs) - 1; i >= 0; i-- {
+		if strings.HasPrefix(beforeArgs[i], "--") {
+			currentFlag = strings.TrimPrefix(beforeArgs[i], "--")
+			if i+1 < len(beforeArgs) {
+				partialValue = beforeArgs[i+1]
+			}
+			break
+		}
+	}
 
-		// Remove prefix - or -- if present
-		flagName = strings.TrimLeft(flagName, "-")
-		fmt.Printf("Flagname: %s\n", flagName)
+	if currentFlag != "" {
+		fmt.Printf("Current flag: %s, Partial value: %s\n", currentFlag, partialValue)
 
 		// Check if the flag has a registered completion function
-		if compFunc, exists := command.GetFlagCompletionFunc(flagName); exists {
-			completions, _ := compFunc(command, args, flagName)
-			fmt.Printf("Completions exist: %+v\n", completions)
+		if compFunc, exists := command.GetFlagCompletionFunc(currentFlag); exists {
+			completions, _ := compFunc(command, args, currentFlag)
+			fmt.Printf("Completions for flag value exist: %+v\n", completions)
 
 			for _, completion := range completions {
-				suggestions = append(suggestions, prompt.Suggest{Text: completion})
+				// Filter completions based on the partial value
+				if strings.HasPrefix(completion, partialValue) {
+					suggestions = append(suggestions, prompt.Suggest{Text: completion})
+				}
 			}
 		}
 	}
