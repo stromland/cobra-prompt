@@ -128,6 +128,7 @@ func (co CobraPrompt) prepare() {
 	}
 }
 
+// findSuggestions generates command and flag suggestions for the prompt.
 func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	command := co.RootCmd
 	args := strings.Fields(d.CurrentLine())
@@ -137,7 +138,23 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 	}
 
 	var suggestions []prompt.Suggest
-	persistFlagValues, _ := command.Flags().GetBool(PersistFlagValuesFlag)
+	suggestions = append(suggestions, getFlagSuggestions(command, co, d)...)
+	suggestions = append(suggestions, getCommandSuggestions(command, co)...)
+	suggestions = append(suggestions, getFlagValueSuggestions(command, co, d)...)
+	suggestions = append(suggestions, getDynamicSuggestions(command, co, d)...)
+
+	if co.SuggestionFilter != nil {
+		return co.SuggestionFilter(suggestions, d)
+	}
+
+	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
+}
+
+// getFlagSuggestions returns a slice of flag suggestions.
+func getFlagSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+	var suggestions []prompt.Suggest
+	persistFlagValues, _ := cmd.Flags().GetBool(PersistFlagValuesFlag)
+
 	addFlags := func(flag *pflag.Flag) {
 		if flag.Changed && !persistFlagValues {
 			flag.Value.Set(flag.DefValue)
@@ -145,6 +162,7 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		if flag.Hidden && !co.ShowHiddenFlags {
 			return
 		}
+
 		if strings.HasPrefix(d.GetWordBeforeCursor(), "--") {
 			suggestions = append(suggestions, prompt.Suggest{Text: "--" + flag.Name, Description: flag.Usage})
 		} else if strings.HasPrefix(d.GetWordBeforeCursor(), "-") && flag.Shorthand != "" {
@@ -152,28 +170,85 @@ func findSuggestions(co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
 		}
 	}
 
-	command.LocalFlags().VisitAll(addFlags)
-	command.InheritedFlags().VisitAll(addFlags)
+	cmd.LocalFlags().VisitAll(addFlags)
+	cmd.InheritedFlags().VisitAll(addFlags)
+	return suggestions
+}
 
-	if command.HasAvailableSubCommands() {
-		for _, c := range command.Commands() {
-			if !c.Hidden && !co.ShowHiddenCommands {
+// getCommandSuggestions returns a slice of command suggestions.
+func getCommandSuggestions(cmd *cobra.Command, co *CobraPrompt) []prompt.Suggest {
+	var suggestions []prompt.Suggest
+	if cmd.HasAvailableSubCommands() {
+		for _, c := range cmd.Commands() {
+			if !c.Hidden || co.ShowHiddenCommands {
 				suggestions = append(suggestions, prompt.Suggest{Text: c.Name(), Description: c.Short})
-			}
-			if co.ShowHelpCommandAndFlags {
-				c.InitDefaultHelpFlag()
 			}
 		}
 	}
+	return suggestions
+}
 
-	annotation := command.Annotations[DynamicSuggestionsAnnotation]
-	if co.DynamicSuggestionsFunc != nil && annotation != "" {
-		suggestions = append(suggestions, co.DynamicSuggestionsFunc(annotation, d)...)
+// getDynamicSuggestions returns a slice of dynamic arg completions.
+func getDynamicSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+	var suggestions []prompt.Suggest
+	if dynamicSuggestionKey, ok := cmd.Annotations[DynamicSuggestionsAnnotation]; ok {
+		if co.DynamicSuggestionsFunc != nil {
+			dynamicSuggestions := co.DynamicSuggestionsFunc(dynamicSuggestionKey, d)
+			suggestions = append(suggestions, dynamicSuggestions...)
+		}
+	}
+	return suggestions
+}
+
+// getCurrentFlagAndValueContext parses the document to find the current flag, its partial value, and whether the context is suitable for flag value suggestions.
+func getCurrentFlagAndValueContext(d *prompt.Document) (string, string, bool) {
+	textBeforeCursor := d.TextBeforeCursor()
+	args := strings.Fields(textBeforeCursor)
+
+	if len(args) == 0 {
+		return "", "", false
 	}
 
-	if co.SuggestionFilter != nil {
-		return co.SuggestionFilter(suggestions, d)
+	lastArg := args[len(args)-1]
+	secondLastArg := ""
+	if len(args) > 1 {
+		secondLastArg = args[len(args)-2]
 	}
 
-	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
+	isLastArgFlag := strings.HasPrefix(lastArg, "--") || strings.HasPrefix(lastArg, "-")
+	isSecondLastArgFlag := strings.HasPrefix(secondLastArg, "--") || strings.HasPrefix(secondLastArg, "-")
+
+	var currentFlag string
+	if isLastArgFlag {
+		currentFlag = strings.TrimLeft(lastArg, "-")
+		return currentFlag, "", true
+	} else if isSecondLastArgFlag {
+		currentFlag = strings.TrimLeft(secondLastArg, "-")
+		return currentFlag, lastArg, true
+	}
+
+	return "", "", false
+}
+
+// getFlagValueSuggestions returns a slice of flag value suggestions.
+func getFlagValueSuggestions(cmd *cobra.Command, co *CobraPrompt, d *prompt.Document) []prompt.Suggest {
+	var suggestions []prompt.Suggest
+	currentFlag, partialValue, isFlagValueContext := getCurrentFlagAndValueContext(d)
+
+	if isFlagValueContext && currentFlag != "" {
+		// Check if the current flag is boolean. If so, do not suggest values.
+		if flag := cmd.Flags().Lookup(currentFlag); flag != nil && flag.Value.Type() == "bool" {
+			return suggestions
+		}
+
+		if compFunc, exists := cmd.GetFlagCompletionFunc(currentFlag); exists {
+			completions, _ := compFunc(cmd, strings.Fields(d.CurrentLine()), currentFlag)
+			for _, completion := range completions {
+				if strings.HasPrefix(completion, partialValue) {
+					suggestions = append(suggestions, prompt.Suggest{Text: completion})
+				}
+			}
+		}
+	}
+	return suggestions
 }
