@@ -16,7 +16,7 @@ func TestFindSuggestions(t *testing.T) {
 	getFoodCmd := newTestCommand("food", "Get some food")
 	getFoodCmd.PersistentFlags().StringP("name", "n", "John", "name of the person to get some food from")
 	_ = getFoodCmd.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"John", "Mary", "Anne"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"John", "Mary\tMarianne - John's Mother", "Anne"}, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	rootCmd.AddCommand(getCmd)
