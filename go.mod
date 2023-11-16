@@ -1,4 +1,4 @@
-module github.com/avirtopeanu-ionos/cobra-prompt
+module github.com/avirtopeanu-ionos/comptplus
 
 go 1.17
 
