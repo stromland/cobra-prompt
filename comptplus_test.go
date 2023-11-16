@@ -1,4 +1,4 @@
-package cobraprompt
+package comptplus
 
 import (
 	"testing"
