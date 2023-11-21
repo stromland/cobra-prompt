@@ -1,4 +1,4 @@
-module github.com/avirtopeanu-ionos/comptplus
+module github.com/ionoscloudsdk/comptplus
 
 go 1.17
 
