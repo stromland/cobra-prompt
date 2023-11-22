@@ -14,9 +14,6 @@ import (
 // DynamicSuggestionsAnnotation for dynamic suggestions.
 const DynamicSuggestionsAnnotation = "cobra-prompt-dynamic-suggestions"
 
-// PersistFlagValuesFlag the flag that will be available when PersistFlagValues is true
-const PersistFlagValuesFlag = "persist-flag-values"
-
 const CacheIntervalFlag = "cache-interval"
 
 // CobraPrompt given a Cobra command it will make every flag and sub commands available as suggestions.
@@ -136,7 +133,7 @@ func (co *CobraPrompt) executeCommand(ctx context.Context) func(string) {
 				os.Exit(1)
 			}
 		}
-		if co.PersistFlagValues {
+		if !co.PersistFlagValues {
 			executedCmd, _, _ := co.RootCmd.Find(os.Args[1:])
 			co.resetFlagsToDefault(executedCmd)
 		}
