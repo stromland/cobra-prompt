@@ -81,6 +81,15 @@ func (co *CobraPrompt) RunContext(ctx context.Context) {
 	if co.RootCmd == nil {
 		panic("RootCmd is not set. Please set RootCmd")
 	}
+
+	if co.HookBefore == nil {
+		co.HookBefore = func(_ string) {}
+	}
+
+	if co.HookAfter == nil {
+		co.HookAfter = func(_ string) {}
+	}
+
 	co.prepareCommands()
 
 	p := prompt.New(
