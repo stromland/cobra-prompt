@@ -91,6 +91,16 @@ func (co *CobraPrompt) RunContext(ctx context.Context) {
 	p.Run()
 }
 
+// resetFlagsToDefault resets all flags to their default values.
+func (co *CobraPrompt) resetFlagsToDefault(cmd *cobra.Command) {
+	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
+		flag.Value.Set(flag.DefValue)
+	})
+	cmd.InheritedFlags().VisitAll(func(flag *pflag.Flag) {
+		flag.Value.Set(flag.DefValue)
+	})
+}
+
 func (co *CobraPrompt) executeCommand(ctx context.Context) func(string) {
 	return func(input string) {
 		co.HookBefore(input)
@@ -103,6 +113,9 @@ func (co *CobraPrompt) executeCommand(ctx context.Context) func(string) {
 				co.RootCmd.PrintErrln(err)
 				os.Exit(1)
 			}
+		}
+		if set, err := co.RootCmd.Flags().GetBool(PersistFlagValuesFlag); err == nil && !set {
+			co.resetFlagsToDefault(co.RootCmd)
 		}
 		co.HookAfter(input)
 	}
